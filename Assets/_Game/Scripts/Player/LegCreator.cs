@@ -1,9 +1,6 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Freya;
-using NaughtyAttributes;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -16,14 +13,12 @@ namespace _Game.Scripts.Player
         [SerializeField,Range(0.001f,1f)] private float _renderValue;
         private Coroutine _moveLegCoroutine;
         private bool _updateLegPos=true;
-        float randomNumber;
-        float lastNumber;
-        int maxAttempts = 10;
         private Vector3[] _ptEvalBuffer;
         private List<Vector3> _points;
         private Vector3[] _setPoints;
-
         private Vector3 _pOffset;
+        private float _rotationTime;
+        private float _rotationSpeed = 2f;
         
         const MethodImplOptions INLINE = MethodImplOptions.AggressiveInlining;
         private void Awake()
@@ -51,6 +46,7 @@ namespace _Game.Scripts.Player
 
         public void StartMove()
         {
+            _rotationTime=0f;
             _moveLegCoroutine = StartCoroutine(MoveLeg());
             _updateLegPos = false;
         }
@@ -62,7 +58,7 @@ namespace _Game.Scripts.Player
 
         public bool LegTooLong(Transform character)
         {
-            if ((( _points[0]+character.forward*5f) - _points[_points.Count-1]).sqrMagnitude > 60f&&!_updateLegPos)
+            if ((( _points[0]+character.forward*5f) - _points[_points.Count-1]).sqrMagnitude > 80f&&!_updateLegPos)
                 return true;
             return false;
         }
@@ -79,63 +75,49 @@ namespace _Game.Scripts.Player
             for (int i = 1; i < _points.Count-1; i++)
             {
                 _points[i] = Vector3.Lerp(_points[0], _points[_points.Count-1], (1f/_points.Count)*i);
-                _setPoints[i] = Vector3.up*Random.Range(-1f,1f)+Vector3.left*Random.Range(-1f,1f);
+                if (i <= _points.Count-2 / 2)
+                {
+                    _setPoints[i] = Vector3.up*Random.Range(0,2f)+Vector3.left*Random.Range(-1f,1f);
+                }
+                else
+                {
+                    _setPoints[i] = Vector3.down*Random.Range(0,0.01f)+Vector3.left*Random.Range(-0.01f,-0.01f);
+                }
+                
                 _points[i] += _setPoints[i];
-                _points[i]+=Vector3.up*Random.Range(-0.5f,0.5f);
 
             }
-            
-
         }
-
-        private void OnDrawGizmos()
+        
+        private void DoCurveAnimation(float radius)
         {
-            Gizmos.color=Color.blue;
+            _rotationTime += _rotationSpeed * Time.deltaTime;
+            float x;
+            float z;
+            float newRadius;
             for (int i = 1; i < _points.Count-1; i++)
             {
-                Gizmos.DrawSphere(_points[i],0.1f);
-            }
-            
-        }
-
-        private void DoCurveAnimation()
-        {
-            
-            for (int i = 1; i < _points.Count-1; i++)
-            {
+                newRadius = radius * 1 / _points.Count - 1 / i;
+                if (i % 2 == 0)
+                {
+                    x = Mathf.Cos(_rotationTime) * newRadius;
+                    z = Mathf.Sin(_rotationTime) * newRadius;
+                }
+                else
+                {
+                    x = Mathf.Cos(-_rotationTime) * newRadius;
+                    z = Mathf.Sin(-_rotationTime) * newRadius;  
+                }
+                Vector3 position = new Vector3(x, z, 0);
                 Vector3 pos = Vector3.Lerp(_points[0], _points[_points.Count-1], (1f/_points.Count)*i);
-                //pos += _setPoints[i];
-               // _points[i] = pos;
-
-                Vector3 dir  = (_points[i]-pos).normalized;
-                 if (i % 2 == 0)
-                     dir = Quaternion.Euler(Vector3.left*0.2f) * dir;
-                 else
-                     dir = Quaternion.Euler(Vector3.right*0.2f) * dir;
- 
-                 _points[i] = dir+pos;
+                pos += _setPoints[i]+position;
+                Vector3 newPos = ((pos ) - _points[i]);
+                _points[i] +=newPos*Time.deltaTime*_rotationSpeed*4 ;
+                
+                
             }
-            
-            
         }
-        
 
-
-        private Vector3 GetPointBezier(float t)
-        {
-            /*float u = 1 - t;
-            float tt = t * t;
-            float uu = u * u;
-            float uuu = uu * u;
-            float ttt = tt * t;
-        
-            Vector3 p = uuu * _legStartPoint; 
-            p += 3 * uu * t * p0; 
-            p += 3 * u * tt * p3; 
-            p += ttt * _legEndPoint; 
-            return p;*/
-            return Eval(t);
-        }
         private int Count {
             [MethodImpl( INLINE )] get => _points.Count;
         }
@@ -154,6 +136,7 @@ namespace _Game.Scripts.Player
 
         private IEnumerator MoveLeg()
         {
+            float radius = Random.Range(0f, 1f);
             while (true)
             {
                 _lineRenderer.positionCount = _pointsCount;
@@ -168,10 +151,10 @@ namespace _Game.Scripts.Player
                     else
                         t = 1f / ((float) _pointsCount / i/_renderValue);
 
-                    array[i] = GetPointBezier(t);
+                    array[i] = Eval(t);
                 }
 
-                DoCurveAnimation();
+               DoCurveAnimation(radius);
                 _lineRenderer.SetPositions(array);
                 yield return null;
             }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -10,9 +9,9 @@ namespace _Game.Scripts.Player
     {
         [SerializeField] private LegCreator _legPrefab;
         private LegsSegment[] _legsSegments;
-        private float _renderSpeed = 5f;
+        private float _renderSpeed = 4f;
         private bool _mayUpdate = false;
-        private int _segmentCount = 7;
+        private int _segmentCount = 5;
 
 
         private void Awake()
@@ -22,7 +21,6 @@ namespace _Game.Scripts.Player
             {
                 _legsSegments[i] = new LegsSegment(3);
             }
-            
         }
 
         private void Start()
@@ -41,7 +39,6 @@ namespace _Game.Scripts.Player
                 }
             }
             
-
             _mayUpdate = true;
         }
 
@@ -50,37 +47,23 @@ namespace _Game.Scripts.Player
             float horizontalInput=Input.GetAxis("Horizontal");
             float verticalInput=Input.GetAxis("Vertical");
             RaycastHit hit;
-            if (Physics.Raycast(transform.position, Vector3.down,out hit,Mathf.Infinity))
-            {
-            }
+            Physics.Raycast(transform.position, Vector3.down, out hit, Mathf.Infinity);
             Vector3 movementDirection = new Vector3(horizontalInput, 0, verticalInput);
             movementDirection.Normalize();
-            transform.Translate(movementDirection*4f*Time.deltaTime,Space.World);
-            transform.position = new Vector3(transform.position.x, hit.point.y+2f, transform.position.z);
-            if (movementDirection != Vector3.zero)
-            {
+            transform.Translate(movementDirection*6f*Time.deltaTime,Space.World);
+            transform.position = new Vector3(transform.position.x, hit.point.y+1f, transform.position.z);
+            if (movementDirection != Vector3.zero) 
                 transform.forward = movementDirection;
-            }
         }
-
-        private void OnDrawGizmos()
-        {
-            Gizmos.color = Color.blue;
-            Gizmos.DrawWireSphere(transform.position+transform.forward*5f,3f);
-        }
-
         private Vector3 SetLegPosition()
         {
             Vector3 rayPosition = Random.insideUnitCircle*3f;
-            rayPosition = new Vector3(rayPosition.x, 0, rayPosition.y);
-            rayPosition += transform.position+transform.forward*5f;
+            rayPosition = new Vector3(rayPosition.x, 7, rayPosition.y);
+            rayPosition += transform.position+transform.forward*7f;
             RaycastHit hit;
             if (Physics.Raycast(rayPosition, Vector3.down,out hit,Mathf.Infinity))
-            {
-                return  hit.point;
-            }
-            else
-              return new Vector3(0,0,0);
+                return hit.point;
+            return new Vector3(0,0,0);
 
         }
 
@@ -99,8 +82,6 @@ namespace _Game.Scripts.Player
                 }
                 UpdateLegPosition(_legsSegments[o]);
             }
-
-           
         }
 
         private void UpdateLegPosition(LegsSegment legsSegment)
@@ -130,7 +111,7 @@ namespace _Game.Scripts.Player
                 float distCovered = (Time.time - startTime) * _renderSpeed;
                 float fractionOfJourney = distCovered / 1f;
                 legCreator.SetUpRenderValue(Mathf.Lerp(1f,0.001f,fractionOfJourney));
-                if(fractionOfJourney>1.1f)
+                if(fractionOfJourney>1f)
                     break;
                 yield return null;
             }
@@ -152,7 +133,7 @@ namespace _Game.Scripts.Player
                 float distCovered = (Time.time - startTime) * _renderSpeed;
                 float fractionOfJourney = distCovered / 1f;
                 legCreator.SetUpRenderValue(Mathf.Lerp(0.001f,1f,fractionOfJourney));
-                if(fractionOfJourney>1.1f)
+                if(fractionOfJourney>1f)
                     break;
                 yield return null;
             }
