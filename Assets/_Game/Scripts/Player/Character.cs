@@ -80,7 +80,7 @@ namespace _Game.Scripts.Player
                 return  hit.point;
             }
             else
-              return SetLegPosition();
+              return new Vector3(0,0,0);
 
         }
 
@@ -136,7 +136,8 @@ namespace _Game.Scripts.Player
             }
             legCreator.StopMove();
             yield return null;
-            legCreator.SetFootPosition(legPos);
+            if(legPos!=Vector3.zero)
+                legCreator.SetFootPosition(legPos);
             legCreator.SetPoints();
            
             StartCoroutine(DrawLeg(legCreator));
